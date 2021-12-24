@@ -1,25 +1,34 @@
 #include "Hooks.h"
 
-struct OnSendEvent
-{
-  static void thunk(RE::VMHandle a_handle, const FixedString& a_eventName,
-                    RE::BSScript::IFunctionArguments* a_args)
-  {
-    logger::info("Event: {}", a_eventName);
+/**
+ * On Frame Update hook
+ */
+uint64_t iterator = 0;
 
-    func(a_handle, a_eventName, a_args);
+/**
+ * This should hook into the child of WinMain
+ * which should trigger per frame
+ */
+struct OnFrameUpdate
+{
+  static void thunk()
+  {
+    RE::ConsoleLog::GetSingleton()->Print("OnFrameUpdateHook iterator: %d",
+                                          iterator);
+    iterator++;
+    func();
   };
   static inline REL::Relocation<decltype(&thunk)> func;
 };
 
-void InstallOnSendEventHook()
+void InstallOnFrameUpdateHook()
 {
-  REL::Relocation<std::uintptr_t> vtbl{ REL::ID(252631) };
-  Hooks::write_vfunc<0x24, OnSendEvent>(vtbl);
+  REL::Relocation<std::uintptr_t> target{ REL::ID(36564) };
+  Hooks::write_thunk_call<OnFrameUpdate>(target.address() + 0x73);
 }
 
 void Hooks::Install()
 {
-  /* InstallOnSendEventHook();
-  logger::info("CommonLib hooks installed."); */
+  InstallOnFrameUpdateHook();
+  logger::info("CommonLib hooks installed.");
 }
